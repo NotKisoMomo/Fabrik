@@ -3,7 +3,7 @@
 [![Static Badge](https://img.shields.io/badge/build-v1.0.0-black)](https://github.com/TheRealKr3ative)
 ![Static Badge](https://img.shields.io/badge/stability-stable-green)
 
-Fabrik is a full-stack async and reactive library for Roblox. It provides promises, raw thread control, named task scheduling, signals, cooldowns, reactive atoms, molecules, organisms, queues, locks, memoization, latches, batching, and watches -- all unified under one module with a consistent chainable API.
+Fabrik is a full-stack async and reactive library for Roblox. It provides promises, raw thread control, named task scheduling, signals, cooldowns, reactive atoms, molecules, organisms, queues, locks, memoization, latches, batching, and conditions -- all unified under one module with a consistent chainable API.
 
 ---
 
@@ -14,20 +14,6 @@ Fabrik is a full-stack async and reactive library for Roblox. It provides promis
 * [Quick Start](#quick-start)
 * [Core Concepts](#core-concepts)
 * [API Reference](#api-reference)
-  * [Fabrik.promise](#fabrikpromise)
-  * [Fabrik.thread](#fabrikthread)
-  * [Fabrik.task](#fabriktask)
-  * [Fabrik.queue](#fabrikqueue)
-  * [Fabrik.lock](#fabriklock)
-  * [Fabrik.memo](#fabrikmemo)
-  * [Fabrik.watch](#fabrikwatch)
-  * [Fabrik.signal](#fabriksignal)
-  * [Fabrik.cooldown](#fabrikcooldown)
-  * [Fabrik.atom](#fabrikatom)
-  * [Fabrik.molecule](#fabrikmolecule)
-  * [Fabrik.organism](#fabrikorganism)
-  * [Fabrik.batch](#fabrikbatch)
-  * [Fabrik.latch](#fabriклatch)
 * [Exported Types](#exported-types)
 * [Contact](#contact)
 
@@ -37,18 +23,18 @@ Fabrik is a full-stack async and reactive library for Roblox. It provides promis
 
 * **Promise API:** `.next()`, `.catch()`, `.conclude()` -- a clean chainable surface with no raw coroutine leaks.
 * **Thread Control:** Spawn, defer, delay, sleep, pause, resume, cancel, and wrap threads without touching `coroutine` or `task` directly.
-* **Named Task Registry:** Define tasks by name, dispatch them immediately or deferred, pool them with concurrency caps, chain them, cancel them.
-* **Persistent Queue:** A FIFO/priority queue primitive that lives across dispatches with pause, resume, and drain events.
-* **Lock:** Mutual exclusion via `acquire`, `release`, and `withLock` -- prevents concurrent tasks from clobbering shared resources.
-* **Memo:** Async memoization with TTL invalidation and stampede protection -- duplicate in-flight calls collapse into one.
-* **Watch:** Poll a value or condition on an interval, resolves when it changes or meets a predicate.
+* **Named Task Registry:** Define tasks by name, dispatch them immediately or deferred, pool them with a max concurrency, chain them, cancel them.
+* **Persistent Queue:** A sequential queue that lives across dispatches with pause, resume, and drain events.
+* **Lock:** Prevents two tasks from running against the same resource at the same time via `acquire`, `release`, and `withLock`.
+* **Memo:** Caches the result of an async task by key with a timeout -- duplicate calls for the same key while one is in-flight collapse into one.
+* **Condition:** Poll a value or condition on an interval, resolves when it changes or meets a predicate.
 * **Signal:** Promise-aware signals with `filter`, `map`, `merge`, `pipe`, `toTask`, and `promiseWhere`.
 * **Cooldown:** Chainable cooldown primitives with `auth`, `throttle`, `debounce`, and direct promise integration.
 * **Atom:** Reactive single values with `onChange`, `promise`, and `derive` for computed atoms.
 * **Molecule:** Composed atom groups with `patch`, `get`, and unified change propagation.
 * **Organism:** Composed molecule groups forming a full reactive state tree.
 * **Batch:** Group multiple atom mutations and flush listeners once at the end of a frame.
-* **Latch:** A synchronization barrier -- all threads awaiting a latch release simultaneously when it opens.
+* **Latch:** Holds all waiting threads until opened -- all of them release at the same time.
 
 ---
 
@@ -124,7 +110,7 @@ Atoms are single reactive values. Molecules group atoms. Organisms group molecul
 Fabrik signals are not plain event emitters. Every signal can be transformed with `filter`, `map`, and `merge` to produce new signals without any intermediate listeners. `promiseWhere` converts a signal into a one-shot promise that resolves only when a predicate passes.
 
 ### Latches
-A latch is a synchronization barrier. Threads calling `latch:await()` block until someone calls `latch:open()`. All waiters release simultaneously. Unlike a signal, a latch that is already open will release new arrivals immediately -- until `latch:reset()` closes it again.
+A latch holds all waiting threads until it opens. Threads calling `latch:await()` block until someone calls `latch:open()`, at which point every waiter releases at the same time. Unlike a signal, a latch that is already open will let new arrivals through immediately -- until `latch:reset()` closes it again.
 
 ---
 
@@ -264,7 +250,7 @@ end)
 
 ### Fabrik.queue
 
-A persistent FIFO/priority queue that lives across dispatches.
+A persistent sequential queue that lives across dispatches.
 
 ```lua
 local q = Fabrik.queue.new({ concurrency = 1, priority = false })
@@ -281,7 +267,7 @@ q.drained:connect(fn) -- fires when queue empties
 
 ### Fabrik.lock
 
-Mutual exclusion -- prevents concurrent tasks from accessing the same resource simultaneously.
+Prevents two tasks from running against the same resource at the same time.
 
 ```lua
 local lock = Fabrik.lock.new()
@@ -301,12 +287,12 @@ end)
 
 ### Fabrik.memo
 
-Async memoization with TTL invalidation. Duplicate in-flight calls for the same key collapse into one.
+Caches the result of an async task by key. Results expire after a set timeout. Duplicate calls for the same key while one is already running collapse into one -- the handler only runs once.
 
 ```lua
 local cached = Fabrik.memo.new(function(userId)
     return Keep.load(userId)
-end, { ttl = 30 })
+end, { timeout = 30 })
 
 cached(userId):next(function(data)
     print(data.coins)
@@ -318,27 +304,27 @@ cached:clear()             -- wipe all cached values
 
 ---
 
-### Fabrik.watch
+### Fabrik.condition
 
 Poll a value or condition on a configurable interval. Returns a promise.
 
 ```lua
 -- resolves when condition is true
-Fabrik.watch.until(function()
+Fabrik.condition.until(function()
     return game.Players.NumPlayers >= 4
 end):next(function()
     startRound()
 end)
 
 -- resolves on next change
-Fabrik.watch.onChange(function()
+Fabrik.condition.onChange(function()
     return workspace.RoundActive.Value
 end):next(function(newValue)
     print("changed to:", newValue)
 end)
 
 -- optional config
-Fabrik.watch.until(fn, { interval = 0.5 })
+Fabrik.condition.until(fn, { interval = 0.5 })
 ```
 
 ---
@@ -491,7 +477,7 @@ end)
 
 ### Fabrik.latch
 
-A synchronization barrier. All threads awaiting a latch release simultaneously when it opens. New arrivals on an already-open latch pass through immediately until `reset()` is called.
+Holds all waiting threads until opened. All of them release at the same time. New arrivals on an already-open latch pass through immediately -- until `reset()` is called.
 
 ```lua
 local latch = Fabrik.latch.new()
