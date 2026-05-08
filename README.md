@@ -3,7 +3,7 @@
 [![Static Badge](https://img.shields.io/badge/build-v1.0.0-black)](https://github.com/TheRealKr3ative)
 ![Static Badge](https://img.shields.io/badge/stability-stable-green)
 
-Fabrik is a full-stack async and reactive library for Roblox. It provides promises, raw thread control, named task scheduling, signals, cooldowns, reactive atoms, molecules, organisms, queues, locks, memoization, latches, batching, and conditions -- all unified under one module with a consistent chainable API.
+Fabrik is everything you need for async Roblox development in one place. Promises, threads, signals, cooldowns, atoms -- all woven together so they actually work with each other. Chain a signal into a promise into a task. Gate work behind a cooldown. Every primitive is designed to connect with the rest.
 
 ---
 
@@ -14,6 +14,20 @@ Fabrik is a full-stack async and reactive library for Roblox. It provides promis
 * [Quick Start](#quick-start)
 * [Core Concepts](#core-concepts)
 * [API Reference](#api-reference)
+  * [Fabrik.promise](#fabrikpromise)
+  * [Fabrik.thread](#fabrikthread)
+  * [Fabrik.task](#fabriktask)
+  * [Fabrik.queue](#fabrikqueue)
+  * [Fabrik.lock](#fabriklock)
+  * [Fabrik.memo](#fabrikmemo)
+  * [Fabrik.condition](#fabrikcondition)
+  * [Fabrik.signal](#fabriksignal)
+  * [Fabrik.cooldown](#fabrikcooldown)
+  * [Fabrik.atom](#fabrikatom)
+  * [Fabrik.molecule](#fabrikmolecule)
+  * [Fabrik.organism](#fabrikorganism)
+  * [Fabrik.batch](#fabrikbatch)
+  * [Fabrik.latch](#fabriклatch)
 * [Exported Types](#exported-types)
 * [Contact](#contact)
 
